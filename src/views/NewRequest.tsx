@@ -6,10 +6,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   ShoppingBag, ClipboardCopy, Radio, Plus, Trash2, Calendar, 
-  AlertTriangle, Upload, Save, CheckCircle, HelpCircle, Loader2, Info
+  AlertTriangle, Save, CheckCircle, HelpCircle, Loader2, Info, Search
 } from 'lucide-react';
 import { localDb } from '../db/localDb';
-import { Profile, RequestItem, RequestType, RequestStatus } from '../types';
+import { Profile, RequestItem, RequestType, RequestStatus, Material } from '../types';
 
 interface NewRequestProps {
   user: Profile;
@@ -41,6 +41,41 @@ export default function NewRequest({ user, onNavigate }: NewRequestProps) {
     { description: '', sap_code: '', quantity: 1, unit: 'UN', brand: '', is_similar_allowed: true, suggested_supplier: '', estimated_value: 0 }
   ]);
 
+  // SAP catalog autocomplete states
+  const [activeSearchIndex, setActiveSearchIndex] = useState<number | null>(null);
+  const materials = React.useMemo(() => localDb.getMaterials(), []);
+  const dropdownRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const clickedInsideDropdown = dropdownRefs.current.some(
+        ref => ref && ref.contains(event.target as Node)
+      );
+      if (!clickedInsideDropdown) {
+        setActiveSearchIndex(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Helper to filter materials for the autocomplete
+  const getFilteredMaterials = (description: string, sapCode: string) => {
+    const descTerm = description.trim().toLowerCase();
+    const codeTerm = sapCode.trim().toLowerCase();
+    
+    if (!descTerm && !codeTerm) {
+      // Show first 5 materials as recent/popular suggestions when empty
+      return materials.slice(0, 5);
+    }
+    
+    return materials.filter(m => {
+      const matchesDesc = descTerm ? m.description.toLowerCase().includes(descTerm) : true;
+      const matchesCode = codeTerm ? m.material_code.toLowerCase().includes(codeTerm) : true;
+      return matchesDesc && matchesCode;
+    }).slice(0, 8); // Limit to top 8 items
+  };
+
   // Specific for SAP registration
   const [registrationType, setRegistrationType] = useState<'Item' | 'Fornecedor'>('Item');
   const [sapRegName, setSapRegName] = useState('');
@@ -54,8 +89,7 @@ export default function NewRequest({ user, onNavigate }: NewRequestProps) {
   const [helpdeskTitle, setHelpdeskTitle] = useState('');
   const [helpdeskLocal, setHelpdeskLocal] = useState('');
 
-  // Attachments
-  const [attachments, setAttachments] = useState<File[]>([]);
+  // States
   const [uploadProgress, setUploadProgress] = useState(false);
   const [autosaveStatus, setAutosaveStatus] = useState<'saved' | 'saving' | 'idle'>('idle');
 
@@ -187,17 +221,7 @@ export default function NewRequest({ user, onNavigate }: NewRequestProps) {
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const list = Array.from(e.target.files);
-      const cleanList = list.filter((file: any) => {
-        const isValidType = ['application/pdf', 'image/jpeg', 'image/png'].includes(file.type);
-        const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB
-        return isValidType && isValidSize;
-      });
-      setAttachments([...attachments, ...cleanList].slice(0, 5)); // Max 5
-    }
-  };
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -390,16 +414,79 @@ export default function NewRequest({ user, onNavigate }: NewRequestProps) {
 
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                       {/* Descricao */}
-                      <div className="sm:col-span-6 space-y-1">
-                        <label className="text-[10px] font-bold text-slate-500">Descrição *</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Descrição do item ou peça"
-                          value={it.description}
-                          onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                          className="w-full rounded border border-gray-200 bg-white py-1 px-2 text-xs focus:outline-none focus:border-emerald-600"
-                        />
+                      <div className="sm:col-span-6 space-y-1 relative" ref={(el) => { dropdownRefs.current[index] = el; }}>
+                        <label className="text-[10px] font-bold text-slate-500 block">Descrição *</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            required
+                            placeholder="Digite para buscar no catálogo SAP..."
+                            value={it.description}
+                            onChange={(e) => {
+                              handleItemChange(index, 'description', e.target.value);
+                              setActiveSearchIndex(index);
+                            }}
+                            onFocus={() => setActiveSearchIndex(index)}
+                            className="w-full rounded border border-gray-200 bg-white py-1 pl-7 pr-2 text-xs focus:outline-none focus:border-emerald-600 font-medium"
+                          />
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                        </div>
+
+                        {/* Autocomplete Dropdown list */}
+                        {activeSearchIndex === index && (
+                          <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto divide-y divide-slate-50">
+                            <div className="bg-slate-50 px-3 py-1 text-[9px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between sticky top-0 border-b border-slate-100">
+                              <span>Resultados do Catálogo SAP</span>
+                              <span className="text-emerald-600 font-bold bg-emerald-50 px-1 rounded">
+                                {getFilteredMaterials(it.description, it.sap_code).length} itens
+                              </span>
+                            </div>
+                            {getFilteredMaterials(it.description, it.sap_code).length === 0 ? (
+                              <div className="p-3 text-xs text-slate-400 text-center">
+                                Nenhum item correspondente no catálogo.
+                                <div className="text-[10px] text-slate-400 mt-0.5">
+                                  Você pode digitar livremente para cadastrar um item novo.
+                                </div>
+                              </div>
+                            ) : (
+                              getFilteredMaterials(it.description, it.sap_code).map((mat) => (
+                                <button
+                                  key={mat.id}
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = [...items];
+                                    updated[index] = {
+                                      ...updated[index],
+                                      description: mat.description,
+                                      sap_code: mat.material_code,
+                                      unit: mat.unit || 'UN'
+                                    };
+                                    setItems(updated);
+                                    setActiveSearchIndex(null);
+                                  }}
+                                  className="w-full text-left px-3 py-2 hover:bg-emerald-50/20 transition-colors flex items-start space-x-2 text-xs"
+                                >
+                                  <span className="font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold text-[9px] shrink-0 mt-0.5">
+                                    {mat.material_code}
+                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-slate-800 truncate" title={mat.description}>
+                                      {mat.description}
+                                    </div>
+                                    {mat.technical_text && (
+                                      <div className="text-[10px] text-slate-400 truncate mt-0.5">
+                                        {mat.technical_text}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] font-mono text-slate-400 bg-slate-50 px-1 rounded uppercase shrink-0 self-center">
+                                    {mat.unit}
+                                  </span>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {/* Código SAP */}
@@ -763,46 +850,7 @@ export default function NewRequest({ user, onNavigate }: NewRequestProps) {
           )}
         </div>
 
-        {/* Attachments Section (All channels) */}
-        <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
-          <h3 className="font-bold text-slate-800 text-sm border-b border-slate-50 pb-3">Anexos de Suporte (Até 5 arquivos)</h3>
-          
-          <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:bg-slate-50/50 transition-colors cursor-pointer relative">
-            <input
-              type="file"
-              multiple
-              accept=".pdf,image/png,image/jpeg"
-              onChange={handleFileSelect}
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-            />
-            <Upload className="mx-auto h-8 w-8 text-gray-400" />
-            <p className="mt-2 text-xs font-semibold text-slate-700">Arraste ou clique para selecionar anexos</p>
-            <p className="mt-1 text-[10px] text-slate-400">PDF, JPG ou PNG de até 10 MB cada.</p>
-          </div>
 
-          {attachments.length > 0 && (
-            <div className="space-y-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Arquivos anexados:</span>
-              <div className="space-y-1.5">
-                {attachments.map((file, idx) => (
-                  <div key={idx} className="flex items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs">
-                    <span className="font-medium text-slate-700 truncate max-w-xs">{file.name}</span>
-                    <div className="flex items-center space-x-3 text-slate-400">
-                      <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
-                      <button
-                        type="button"
-                        onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))}
-                        className="text-red-500 hover:text-red-700 cursor-pointer"
-                      >
-                        <XIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
 
         {/* Action controls */}
         <div className="flex items-center justify-end space-x-4 pt-4">
@@ -830,14 +878,5 @@ export default function NewRequest({ user, onNavigate }: NewRequestProps) {
         </div>
       </form>
     </div>
-  );
-}
-
-function XIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
   );
 }

@@ -32,6 +32,27 @@ export default function App() {
   const [currentPath, setCurrentPath] = useState<string>('/');
   const [loading, setLoading] = useState(true);
 
+  // Theme management (Dark / Light Mode)
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+    return 'light';
+  });
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
+
   // Initialize DB and authenticate user
   useEffect(() => {
     // Check session
@@ -133,7 +154,13 @@ export default function App() {
 
       case '/helpdesk':
         if (user.roles.includes('atendente') || user.roles.includes('admin')) {
-          return <Helpdesk user={user} onNavigate={handleNavigate} />;
+          return <Helpdesk user={user} onNavigate={handleNavigate} initialView="atendimento" />;
+        }
+        return <Dashboard user={user} onNavigate={handleNavigate} />;
+
+      case '/helpdesk/relatorios':
+        if (user.roles.includes('atendente') || user.roles.includes('admin')) {
+          return <Helpdesk user={user} onNavigate={handleNavigate} initialView="dashboard" />;
         }
         return <Dashboard user={user} onNavigate={handleNavigate} />;
 
@@ -170,12 +197,22 @@ export default function App() {
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50/50">
       {/* Collapsible Sidebar */}
-      <Sidebar user={user} currentPath={currentPath} onNavigate={handleNavigate} />
+      <Sidebar 
+        user={user} 
+        currentPath={currentPath} 
+        onNavigate={handleNavigate} 
+        theme={theme}
+        toggleTheme={toggleTheme}
+      />
 
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Dynamic Header */}
-        <Header user={user} onUserChange={handleUserSessionChange} onNavigate={handleNavigate} />
+        <Header 
+          user={user} 
+          onUserChange={handleUserSessionChange} 
+          onNavigate={handleNavigate} 
+        />
 
         {/* Dynamic scrollable main pane view */}
         <main className="flex-1 overflow-y-auto p-6">

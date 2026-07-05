@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { ArrowLeft, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, AlertCircle, Loader2, Sun, Moon } from 'lucide-react';
 import { localDb } from '../db/localDb';
 
 interface SignupProps {
@@ -19,6 +19,20 @@ export default function Signup({ onNavigate }: SignupProps) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+  const toggleTheme = () => {
+    const newDark = !isDark;
+    setIsDark(newDark);
+    if (newDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
 
   const sectors = localDb.getSectors();
 
@@ -46,6 +60,16 @@ export default function Signup({ onNavigate }: SignupProps) {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-slate-50 p-6">
+      {/* Dark Mode toggle corner button */}
+      <button
+        type="button"
+        onClick={toggleTheme}
+        className="absolute right-6 top-6 z-50 rounded-full border border-slate-200 bg-white p-2.5 shadow-md text-slate-500 hover:scale-105 transition-all cursor-pointer"
+        title={isDark ? 'Ativar Modo Claro' : 'Ativar Modo Escuro'}
+      >
+        {isDark ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5 text-slate-600" />}
+      </button>
+
       {/* Background decoration */}
       <div 
         className="absolute inset-0 bg-cover bg-center opacity-10 mix-blend-multiply"

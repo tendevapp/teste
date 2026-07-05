@@ -7,18 +7,21 @@ import React, { useState } from 'react';
 import { 
   Home, Search, BarChart3, PlusCircle, List, FileCheck, 
   Database, LayoutDashboard, Upload, Users, Shield, 
-  Map, Settings, HelpCircle, ChevronRight, Menu, KeyRound, Radio
+  Map, Settings, HelpCircle, ChevronRight, Menu, KeyRound, Radio, Sun, Moon
 } from 'lucide-react';
 import { localDb } from '../db/localDb';
 import { Profile } from '../types';
+import SistenLogo from './SistenLogo';
 
 interface SidebarProps {
   user: Profile;
   currentPath: string;
   onNavigate: (path: string) => void;
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
 }
 
-export default function Sidebar({ user, currentPath, onNavigate }: SidebarProps) {
+export default function Sidebar({ user, currentPath, onNavigate, theme, toggleTheme }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   const getSectorsWithHelpdesk = () => {
@@ -55,6 +58,7 @@ export default function Sidebar({ user, currentPath, onNavigate }: SidebarProps)
       group: 'HELPDESK',
       items: [
         { label: 'Atendimento', path: '/helpdesk', icon: Radio, perm: { module: 'chamados', action: 'atender_setor' } },
+        { label: 'Relatórios Helpdesk', path: '/helpdesk/relatorios', icon: BarChart3, perm: { module: 'chamados', action: 'atender_setor' } },
       ],
     },
     {
@@ -82,32 +86,19 @@ export default function Sidebar({ user, currentPath, onNavigate }: SidebarProps)
       }`}
     >
       {/* Brand logo container */}
-      <div className="flex h-16 items-center justify-between px-4 border-b border-gray-800 bg-slate-950">
+      <div className="flex h-16 items-center justify-between px-3 border-b border-gray-800 bg-slate-950">
         {!collapsed ? (
-          <div className="flex items-center space-x-2">
-            {/* Wind turbine custom SVG logo */}
-            <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 p-1 ring-2 ring-white/10">
-              <svg className="h-7 w-7 text-white animate-[spin_12s_linear_infinite]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-                <path d="M12 12L12 2M12 12L4 16.5M12 12L20 16.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="text-sm font-extrabold text-white tracking-wider leading-none">SISTEN</span>
-              <span className="text-[9px] text-slate-400 mt-0.5">Plataforma Torres Eólicas</span>
-            </div>
+          <div className="flex items-center overflow-hidden flex-1 mr-2 select-none">
+            <SistenLogo className="max-w-[155px] object-contain" />
           </div>
         ) : (
-          <div className="flex w-full justify-center">
-            <svg className="h-6 w-6 text-blue-500 animate-[spin_15s_linear_infinite]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-              <path d="M12 12L12 2M12 12L4 16.5M12 12L20 16.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+          <div className="flex w-full justify-center mr-1 select-none">
+            <SistenLogo iconOnly />
           </div>
         )}
         <button 
           onClick={() => setCollapsed(!collapsed)}
-          className="rounded p-1 hover:bg-slate-800 text-slate-400 hover:text-white"
+          className="rounded p-1 hover:bg-slate-800 text-slate-400 hover:text-white shrink-0"
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -161,9 +152,24 @@ export default function Sidebar({ user, currentPath, onNavigate }: SidebarProps)
 
       {/* Profile Footer */}
       {!collapsed && (
-        <div className="border-t border-gray-800 bg-slate-950 p-4 text-left">
-          <p className="text-xs font-semibold text-white truncate">{user.name}</p>
-          <p className="text-[10px] text-slate-400 truncate mt-0.5">{user.email}</p>
+        <div className="border-t border-gray-800 bg-slate-950 p-4 flex items-center justify-between text-left">
+          <div className="min-w-0 flex-1 mr-2">
+            <p className="text-xs font-semibold text-white truncate">{user.name}</p>
+            <p className="text-[10px] text-slate-400 truncate mt-0.5">{user.email}</p>
+          </div>
+          {/* Dark Mode Toggle */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="rounded-full p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white focus:outline-none transition-colors shrink-0"
+            title={theme === 'dark' ? 'Ativar Modo Claro' : 'Ativar Modo Escuro'}
+          >
+            {theme === 'dark' ? (
+              <Sun className="h-4.5 w-4.5 text-amber-400" />
+            ) : (
+              <Moon className="h-4.5 w-4.5 text-slate-400" />
+            )}
+          </button>
         </div>
       )}
     </aside>

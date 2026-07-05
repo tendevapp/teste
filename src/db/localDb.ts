@@ -1868,6 +1868,25 @@ class LocalDatabase {
     this.setStorageItem('sisten_notification_prefs', prefs);
     this.logActivity(userId, 'Perfil', 'Notificações', `Preferências de notificação definidas para "${pref}".`);
   }
+
+  public evaluateTicket(reqId: string, rating: number, comment?: string): void {
+    const requests = this.getRequests();
+    const idx = requests.findIndex(r => r.id === reqId);
+    if (idx !== -1) {
+      requests[idx].rating = rating;
+      if (comment) {
+        requests[idx].rating_comment = comment;
+      }
+      requests[idx].updated_at = new Date().toISOString();
+      this.setStorageItem(this.requestsKey, requests);
+      
+      const user = this.getCurrentUser();
+      this.logActivity(user?.id || 'sistema', 'Helpdesk', 'Avaliar Chamado', `Chamado #${requests[idx].number} avaliado com ${rating} estrelas.`);
+      
+      // Also write as system comment
+      this.addRequestComment(reqId, `Chamado avaliado pelo solicitante: ${rating} / 5 estrelas.${comment ? ` Comentário: "${comment}"` : ''}`, false);
+    }
+  }
 }
 
 export const localDb = new LocalDatabase();

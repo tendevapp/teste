@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Bell, Search, User, LogOut, ChevronDown, Check, AlertCircle } from 'lucide-react';
+import { Bell, Search, User, LogOut, ChevronDown, Check, AlertCircle, Sun, Moon } from 'lucide-react';
 import { localDb } from '../db/localDb';
 import { Profile, Notification } from '../types';
 
@@ -101,23 +101,9 @@ export default function Header({ user, onUserChange, onNavigate }: HeaderProps) 
   const sector = localDb.getSectors().find(s => s.id === user.sector_id);
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-gray-100 bg-white px-6 shadow-sm">
-      {/* Left side Search */}
-      <form onSubmit={handleGlobalSearch} className="relative w-full max-w-md">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-          <Search className="h-5 w-5" />
-        </div>
-        <input
-          type="text"
-          placeholder="Buscar material ou nº da solicitação (7 dígitos)..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pr-4 pl-10 text-sm placeholder-gray-400 focus:border-emerald-600 focus:bg-white focus:ring-1 focus:ring-emerald-600 focus:outline-none transition-all duration-200"
-        />
-      </form>
-
+    <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-end border-b border-gray-100 bg-white px-6 shadow-sm">
       {/* Right side Controls */}
-      <div className="flex items-center space-x-6">
+      <div className="flex items-center space-x-4">
         {/* Notifications */}
         <div className="relative">
           <button
@@ -177,22 +163,6 @@ export default function Header({ user, onUserChange, onNavigate }: HeaderProps) 
           )}
         </div>
 
-        {/* Impersonator selector (Demo purposes) */}
-        <div className="hidden md:flex items-center space-x-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-1 text-xs">
-          <span className="font-medium text-amber-800">Simulador de Papéis:</span>
-          <select
-            value={user.id}
-            onChange={(e) => switchImpersonation(e.target.value)}
-            className="bg-transparent font-semibold text-amber-900 focus:outline-none cursor-pointer"
-          >
-            {allProfiles.map(p => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({getRoleBadge(p.roles[0])})
-              </option>
-            ))}
-          </select>
-        </div>
-
         {/* User profile menu */}
         <div className="relative">
           <button
@@ -220,20 +190,6 @@ export default function Header({ user, onUserChange, onNavigate }: HeaderProps) 
                 <p className="mt-1 text-[10px] bg-emerald-50 text-emerald-800 font-bold px-1.5 py-0.5 rounded inline-block">
                   {user.cargo}
                 </p>
-              </div>
-
-              <div className="md:hidden border-b border-gray-50 p-2">
-                <p className="px-2 text-[10px] font-bold uppercase text-gray-400 tracking-wider">Alternar Papel</p>
-                {allProfiles.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => switchImpersonation(p.id)}
-                    className={`flex w-full items-center justify-between rounded px-3 py-1.5 text-xs hover:bg-gray-50 ${p.id === user.id ? 'font-semibold text-emerald-600' : 'text-gray-600'}`}
-                  >
-                    <span>{p.name}</span>
-                    {p.id === user.id && <Check className="h-3 w-3" />}
-                  </button>
-                ))}
               </div>
 
               <button

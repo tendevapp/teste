@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, Loader2, Landmark, Radio, ShoppingCart, BarChart3, HelpCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader2, Landmark, Radio, ShoppingCart, BarChart3, HelpCircle, Sun, Moon } from 'lucide-react';
 import { localDb } from '../db/localDb';
 import { Profile } from '../types';
 
@@ -19,6 +19,20 @@ export default function Login({ onLoginSuccess, onNavigate }: LoginProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+  const toggleTheme = () => {
+    const newDark = !isDark;
+    setIsDark(newDark);
+    if (newDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +66,16 @@ export default function Login({ onLoginSuccess, onNavigate }: LoginProps) {
 
   return (
     <div className="relative flex min-h-screen w-full flex-col lg:flex-row bg-slate-50 overflow-hidden">
+      {/* Dark Mode toggle corner button */}
+      <button
+        type="button"
+        onClick={toggleTheme}
+        className="absolute right-6 top-6 z-50 rounded-full border border-slate-200 bg-white p-2.5 shadow-md text-slate-500 hover:scale-105 transition-all cursor-pointer"
+        title={isDark ? 'Ativar Modo Claro' : 'Ativar Modo Escuro'}
+      >
+        {isDark ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5 text-slate-600" />}
+      </button>
+
       {/* Background/Decoration Side */}
       <div className="relative flex flex-col justify-between bg-slate-900 px-8 py-10 lg:w-3/5 xl:w-2/3 text-white">
         {/* Ambient background image representing Jacobina Wind Farm */}
